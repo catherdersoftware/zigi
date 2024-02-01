@@ -623,7 +623,7 @@ Update_Userid:
   "LMINIT DATAID(reset) DATASET('"workdsn"')"
   "LMOPEN DATAID("reset") OPTION(INPUT)"
   if zluser /= defruid then
-    'LMMSTATS DATAID('reset') Member('member') user('defruid')'
+    'LMMSTATS DATAID('reset') Member('member')' LMMSTATS_USER(defruid)
   "LMClose Dataid("reset")"
   "LMFree  Dataid("reset")"
   return
@@ -713,6 +713,18 @@ add_env:
   envc = envc + 1
   env.envc = env_val
   return
+
+  /* ----------------------------------------------------- */
+  /* Supply proper LMMSTATS USER keyword                   */
+  /* ----------------------------------------------------- */
+LMMSTATS_USER: procedure
+  arg uid .
+  if length(uid) = 8 then
+    user = 'USER8'
+  else
+    user = 'USER'
+  user = user'('uid')'
+  return user
 
 docmd:
   parse arg cmd
@@ -1419,7 +1431,7 @@ ver (&cmsg1,nb)
 /* zigi - the z/OS ISPF Git Interface                       */
 /* Copyright (C) 2020 GPL V3 - Henri Kuiper and Lionel Dyck */
 /* -------------------------------------------------------- */
->Exec zigistat
+>Exec
   /* --------------------  rexx procedure  -------------------- *
   | Name:      zigistat                                        |
   |                                                            |
@@ -1461,6 +1473,11 @@ ver (&cmsg1,nb)
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            01/31/24 MRM - Support 8-byte userids           |
+  |            06/15/23 LBD - Add env ICONV_EBCDIC_ZOS_UNIX=1  |
+  |            10/16/22 LBD - Delete amdlist sysprint tmp dsn  |
+  |            07/19/22 LBD - Fix chtag mixed error            |
+  |            06/19/22 LBD - Fix suffix check compare         |
   |            04/25/22 TPM - Add 2 dropped statements         |
   |                           (LBD - my bad)                   |
   |            03/23/22 TPM - list of repo files not in PDS    |
@@ -1506,7 +1523,8 @@ ver (&cmsg1,nb)
   |                                                            |
   | ---------------------------------------------------------- |
   |    ZIGI - the z/OS ISPF Git Interface                      |
-  |    Copyright (C) 2020-2021 - Henri Kuiper and Lionel Dyck  |
+  |    Copyright (C) 2020-2024 - Henri Kuiper, Lionel Dyck, &  |
+  |                              Ray Mullins                   |
   |                                                            |
   |    This program is free software: you can redistribute it  |
   |    and/or modify it under the terms of the GNU General     |
@@ -1644,7 +1662,7 @@ zigistat:
         if sysrecfm /= 'U' then
         if zlcdate = null then
         if readonly = 0 then do
-          'LMMSTATS DATAID('status') Member('member') user('newuid')'
+          'LMMSTATS DATAID('status') Member('member')' LMMSTATS_USER(newuid)
           "LMMFind DATAID("status") Member("member") STATS(YES)"
         end
         /* ------------------------------ *
@@ -1709,7 +1727,7 @@ zigistat:
       x = debug('Saving stats begins to:' filepath)
       x = bpxwunix('rm' usssafe(filepath),,so.,se.)
       call write_stats
-      cmd = 'chtag -c' codep usssafe(filepath)
+      cmd = 'chtag -tc' codep usssafe(filepath)
       x = bpxwunix(cmd,,so.,se.)
       x = debug('Saving stats completed.')
       return 0
@@ -1741,12 +1759,12 @@ zigistat:
           if statmems /= null then
           if wordpos(member,statmems) = 0 then iterate
           if zlcdate = null then ,
-            'LMMSTATS DATAID('zstats') Member('member') user('sysvar(sysuid)')'
+            'LMMSTATS DATAID('zstats') Member('member')' LMMSTATS_USER(sysvar(sysuid))
           else ,
             'LMMSTATS DATAID('zstats') MEMBER('member') VERSION('zlvers')' ,
             'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
             'MODTIME('zlmtime') INITSIZE('zlinorc')' ,
-            'MODRECS('zlmnorc') USER('zluser')'
+            'MODRECS('zlmnorc')' LMMSTATS_USER(zluser)
         end
         "LMClose Dataid("zstats")"
         "LMFree  Dataid("zstats")"
@@ -1811,6 +1829,12 @@ zigistat:
         if words(ro.n) < 3 then iterate n
 
         repo_mem = word(ro.n,words(ro.n))
+
+        if pos('.',repo_mem) > 0 then do
+           p = pos('.',repo_mem)
+           repo_mem = translate(left(repo_mem,p-1))
+           end
+
         if wordpos(repo_mem,allmems) = 0 then repo@nf = repo@nf repo_mem
         end
 
@@ -1822,7 +1846,6 @@ zigistat:
           repo@nf1 = strip(repo@nf)
           'VPUT (REPO@NF1)'
           end
-
         else do forever
           repo@nfc = repo@nfc + 1
           if length(repo@nf) > 32000 then
@@ -1881,9 +1904,9 @@ Update_Member_ISPF_Stats:
     parse value mem.actmem with cdt mdt mtm uid
     if uid /= null then
     'LMMSTATS DATAID('zstats') Member('actmem') Created('cdt')',
-           'Moddate('mdt') Modtime('mtm') User('uid')'
+           'Moddate('mdt') Modtime('mtm')' LMMSTATS_USER(uid)
     else
-    'LMMSTATS DATAID('zstats') Member('actmem') User('userid()')'
+    'LMMSTATS DATAID('zstats') Member('actmem')' LMMSTATS_USER(userid())
     "LMClose Dataid("zstats")"
     "LMFree  Dataid("zstats")"
    return
@@ -1920,9 +1943,22 @@ GETENV:
   envc = env.0
   call add_env '_BPX_SHAREAS=MUST'
   call add_env '_BPX_SPAWN_SCRIPT=YES'
-  call add_env 'EXPORT _EDC_ADD_ERRNO2=1'
+  call add_env '_EDC_ADD_ERRNO2=1'
   call add_env '_EDC_ZERO_RECLEN=Y'
+  call add_env 'ICONV_EBCDIC_ZOS_UNIX=1'
   env.0 = envc
+
+  /* ----------------------------------------------------- */
+  /* Supply proper LMMSTATS USER keyword                   */
+  /* ----------------------------------------------------- */
+LMMSTATS_USER: procedure
+  arg uid .
+  if length(uid) = 8 then
+    user = 'USER8'
+  else
+    user = 'USER'
+  user = user'('uid')'
+  return user
 
 docmdx:
   /* quircky thing, we need to export HOME as we are
@@ -2174,6 +2210,10 @@ Get_LoadLib:
   'Alloc f(sysin) ds(*) reuse'
   'Alloc f(sysprint) ds(*) reuse'
 
+  call outtrap 'x.'
+  'delete' "'"syspds"'"
+  call outtrap 'off'
+
   zs3 = 'Analyzing the filtered AMBLIST data.'
   zs4 = results.0 'records to process.'
   call do_popup4
@@ -2190,6 +2230,12 @@ Get_LoadLib:
        cal  = year''right(day+1000,3)
        end
     if word(results.lmi,8) = 'BINDER' & word(results.lmi,19) = 'AT' then do
+      day = word(results.lmi,15)
+      year = substr(word(results.lmi,18),3,2)
+      time = left(word(results.lmi,20),8)
+      cal  = year''day
+    end
+    if word(results.lmi,8) = 'BINDER' & word(results.lmi,19) /= 'AT' then do
       day = word(results.lmi,15)
       year = substr(word(results.lmi,18),3,2)
       time = left(word(results.lmi,20),8)

@@ -750,6 +750,18 @@ Done:
   end
   Exit 0
 
+  /* ----------------------------------------------------- */
+  /* Supply proper LMMSTATS USER keyword                   */
+  /* ----------------------------------------------------- */
+LMMSTATS_USER: procedure
+  arg uid .
+  if length(uid) = 8 then
+    user = 'USER8'
+  else
+    user = 'USER'
+  user = user'('uid')'
+  return user
+
   /* ============================================================== */
   /* ======== main initialization functions       ================= */
   /* ============================================================== */
@@ -5108,7 +5120,7 @@ Do_Resetid:
       if rc > 3 then leave
       if zluser = resetid then iterate
       zluser = resetid
-      'LMMSTATS DATAID('zstats') Member('mem') user('zluser')'
+      'LMMSTATS DATAID('zstats') Member('mem')' LMMSTATS_USER(zluser)
       'tbput' rtll
     end
     "LMClose Dataid("zstats")"
@@ -5444,7 +5456,7 @@ fixup_userids:
       "LMMFind DATAID("reset") Member("member") STATS(YES)"
       if rc > 7 then iterate
       if zluser /= defruid then do
-        'LMMSTATS DATAID('reset') Member('member') user('defruid')'
+        'LMMSTATS DATAID('reset') Member('member')' LMMSTATS_USER(defruid)
       end
     end
     "LMClose Dataid("reset")"
@@ -9503,7 +9515,7 @@ DoHist_Recover:
     if left(rdsn,1) = "'" then rdsn = rdsn"'"
     "LMINIT DATAID(zstats) DATASET("rdsn")"
     "LMOPEN DATAID("zstats") OPTION(INPUT)"
-    'LMMSTATS DATAID('zstats') Member('mem') user('zluser')'
+    'LMMSTATS DATAID('zstats') Member('mem')' LMMSTATS_USER(zluser)
     "LMClose Dataid("zstats")"
     "LMFree  Dataid("zstats")"
   end
@@ -9717,12 +9729,12 @@ Add_Stats:
     ZLMTIME ZLCNORC ZLINORC ZLMNORC ZLUSER ZLCNORCE ,
     ZLINORCE ZLMNORCE .
   if zlcdate = null then ,
-    'LMMSTATS DATAID('zstats') Member('upmbr') user('sysvar(sysuid)')'
+    'LMMSTATS DATAID('zstats') Member('upmbr')' LMMSTATS_USER(sysvar(sysuid))
   else ,
     'LMMSTATS DATAID('zstats') MEMBER('upmbr') VERSION('zlvers')' ,
     'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
     'MODTIME('zlmtime') INITSIZE('zlinorc')' ,
-    'MODRECS('zlmnorc') USER('zluser')'
+    'MODRECS('zlmnorc')' LMMSTATS_USER(zluser)
   "LMClose Dataid("zstats")"
   "LMFree  Dataid("zstats")"
   return
