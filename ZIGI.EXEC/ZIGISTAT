@@ -325,7 +325,8 @@ zigistat:
           if statmems /= null then
           if wordpos(member,statmems) = 0 then iterate
           if zlcdate = null then ,
-            'LMMSTATS DATAID('zstats') Member('member')' LMMSTATS_USER(sysvar(sysuid))
+            'LMMSTATS DATAID('zstats') Member('member')',
+            LMMSTATS_USER(sysvar(sysuid))
           else ,
             'LMMSTATS DATAID('zstats') MEMBER('member') VERSION('zlvers')' ,
             'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
