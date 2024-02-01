@@ -1,0 +1,13 @@
+/* rexx */
+                                                             
+  /* ----------------------------------------------------- */
+  /* Supply proper LMMSTATS USER keyword                   */
+  /* ----------------------------------------------------- */
+  arg uid .                                                  
+  if length(uid) = 8 then                                    
+    user = 'USER8'                                           
+  else                                                       
+    user = 'USER'                                            
+  user = user'('uid')'                                       
+  return user                                                
+                                                             
