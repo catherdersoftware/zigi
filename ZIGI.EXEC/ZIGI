@@ -750,18 +750,6 @@ Done:
   end
   Exit 0
 
-  /* ----------------------------------------------------- */
-  /* Supply proper LMMSTATS USER keyword                   */
-  /* ----------------------------------------------------- */
-LMMSTATS_USER: procedure
-  arg uid .
-  if length(uid) = 8 then
-    user = 'USER8'
-  else
-    user = 'USER'
-  user = user'('uid')'
-  return user
-
   /* ============================================================== */
   /* ======== main initialization functions       ================= */
   /* ============================================================== */
@@ -3166,7 +3154,7 @@ WWRF_build_member_table:
   /* Do this if it's a PDS */
   localdir = localrep'/'zigirep
   'TBCreate' rtll 'Keys(mem) Names(memstat zlcnorc' ,
-    'zlmdate zlmtime zluser mtype zlm4date)',
+    'zlmdate zlmtime zluser mtype zlm4date zluser8)',
     'replace NoWrite'
   rtll_open = 1
   /* --------------------- *
@@ -5118,9 +5106,17 @@ Do_Resetid:
     do forever
       'tbskip' rtll
       if rc > 3 then leave
-      if zluser = resetid then iterate
+      if zluser == '>7CHARS' then
+        cmpruser = zluser8
+      else
+        cmpruser = zluser
+      if cmpruser = resetid then iterate
+      if zluser == '>7CHARS' then
+        setuser = zluser8
+      else
+        setuser = zluser
       zluser = resetid
-      'LMMSTATS DATAID('zstats') Member('mem')' LMMSTATS_USER(zluser)
+      'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(setuser)
       'tbput' rtll
     end
     "LMClose Dataid("zstats")"
@@ -5455,8 +5451,12 @@ fixup_userids:
       parse value member with member'.' .
       "LMMFind DATAID("reset") Member("member") STATS(YES)"
       if rc > 7 then iterate
-      if zluser /= defruid then do
-        'LMMSTATS DATAID('reset') Member('member')' LMMSTATS_USER(defruid)
+      if zluser == '>7CHARS' then
+        cmpruser = zluser8
+      else
+        cmpruser = zluser
+      if cmpruser /= defruid then do
+        'LMMSTATS DATAID('reset') Member('member')' zigilmmu(defruid)
       end
     end
     "LMClose Dataid("reset")"
@@ -5753,7 +5753,8 @@ Do_LSort:
     return
   end
   sw = wordpos(sort_field,'MEMBER STATUS SIZE DATE TIME USERID')
-  sort_field = subword('mem memstat zlcnorc zlm4date zlmtime zluser',sw,1)
+  sort_field = subword('mem memstat zlcnorc zlm4date zlmtime zluser zluser8',,
+    sw,1)
   if sw = 3 then sort_type = 'N'
   else sort_type = 'C'
   if sort_field /= zlm4date
@@ -9515,7 +9516,7 @@ DoHist_Recover:
     if left(rdsn,1) = "'" then rdsn = rdsn"'"
     "LMINIT DATAID(zstats) DATASET("rdsn")"
     "LMOPEN DATAID("zstats") OPTION(INPUT)"
-    'LMMSTATS DATAID('zstats') Member('mem')' LMMSTATS_USER(zluser)
+    'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(zluser)
     "LMClose Dataid("zstats")"
     "LMFree  Dataid("zstats")"
   end
@@ -9727,14 +9728,18 @@ Add_Stats:
   "LMOPEN DATAID("zstats") OPTION(INPUT)"
   parse value mstats with upmbr ZLCDATE ZLMDATE ZLVERS ZLMOD ,
     ZLMTIME ZLCNORC ZLINORC ZLMNORC ZLUSER ZLCNORCE ,
-    ZLINORCE ZLMNORCE .
+    ZLINORCE ZLMNORCE ZLUSER8 .
+  if zluser == '>7CHARS' then
+    setuser = zluser8
+  else
+    setuser = zluser
   if zlcdate = null then ,
-    'LMMSTATS DATAID('zstats') Member('upmbr')' LMMSTATS_USER(sysvar(sysuid))
+    'LMMSTATS DATAID('zstats') Member('upmbr')' zigilmmu(sysvar(sysuid))
   else ,
     'LMMSTATS DATAID('zstats') MEMBER('upmbr') VERSION('zlvers')' ,
     'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
     'MODTIME('zlmtime') INITSIZE('zlinorc')' ,
-    'MODRECS('zlmnorc')' LMMSTATS_USER(zluser)
+    'MODRECS('zlmnorc')' zigilmmu(setuser)
   "LMClose Dataid("zstats")"
   "LMFree  Dataid("zstats")"
   return
