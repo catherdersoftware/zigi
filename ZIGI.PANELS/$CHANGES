@@ -859,7 +859,7 @@ New ZIGI Cheat Sheet (pdf) and ZIGI User's Guide (pdf, azw3, mobi, epub)
 have been created and are new with v2.5 which can be found at the ZIGI
 wiki:
 
-   https://github.com/wizardofzos/zigi/wiki/6.-Documentation
+   https://github.com/zigi/zigi/wiki/6.-Documentation
 
 Update to the Current Repository commands menu to add ADDALL. This
 command will do a git add for all Untracked or Modified datasets or
