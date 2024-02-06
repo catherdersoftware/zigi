@@ -1,0 +1,53 @@
+/* rexx */                                                       
+                                                                 
+  /* --------------------  rexx procedure  -------------------- *
+  | Name:      zigizlus                                        | 
+  |                                                            | 
+  | Function:  Return either ZLUSER8 or ZLUSER based on        | 
+  |            contents                                        | 
+  |                                                            | 
+  | Syntax:    x=zigizlus(uid)                                 | 
+  |                                                            | 
+  |            uid is the userid to analyze                    | 
+  |                                                            | 
+  | Vars:      user for returned value                         | 
+  |                                                            | 
+  | Usage                                                      | 
+  |   Notes:   Subroutine of ZIGI                              | 
+  |                                                            | 
+  | Dependencies:                                              | 
+  |            None                                            | 
+  |                                                            | 
+  | Return:    Either 'USER(uid)' or 'USER8(uid)'              | 
+  |                                                            | 
+  | Author:    M. Ray Mullins                                  | 
+  |                                                            | 
+  | History:  (most recent on top)                             | 
+  |            24/02/02 MRM - Created.                         | 
+  |                                                            | 
+  | ---------------------------------------------------------- | 
+  |    ZIGI - the z/OS ISPF Git Interface                      | 
+  |    Copyright (C) 2024-     - Ray Mullins                   | 
+  |                                                            | 
+  |    This program is free software: you can redistribute it  | 
+  |    and/or modify it under the terms of the GNU General     | 
+  |    Public License as published by the Free Software        | 
+  |    Foundation, either version 3 of the License, or (at     | 
+  |    your option) any later version.                         | 
+  |                                                            | 
+  |    This program is distributed in the hope that it will be | 
+  |    useful, but WITHOUT ANY WARRANTY; without even the      | 
+  |    implied warranty of MERCHANTABILITY or FITNESS FOR A    | 
+  |    PARTICULAR PURPOSE.  See the GNU General Public License | 
+  |    for more details.                                       | 
+  |                                                            | 
+  |    You should have received a copy of the GNU General      | 
+  |    Public License along with this program.  If not, see    | 
+  |    <https://www.gnu.org/licenses/>.                        | 
+  * ---------------------------------------------------------- */
+  if zos390rl >= '02.03.00' & zluser8 \= ' ' then
+    user = zluser8
+  else                                                           
+    user = zluser
+  return user                                                    
+                                                                 
