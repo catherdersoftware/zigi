@@ -27,7 +27,7 @@
   |                                                            |
   | ---------------------------------------------------------- |
   |    ZIGI - the z/OS ISPF Git Interface                      |
-  |    Copyright (C) 2024-     - Ray Mullins                   | 
+  |    Copyright (C) 2024-     - Ray Mullins                   |
   |                                                            |
   |    This program is free software: you can redistribute it  |
   |    and/or modify it under the terms of the GNU General     |
@@ -45,6 +45,9 @@
   |    Public License along with this program.  If not, see    |
   |    <https://www.gnu.org/licenses/>.                        |
   * ---------------------------------------------------------- */
+
+zigilmmu:
+
   arg uid .
   if length(uid) = 8 then
     user = 'USER8'

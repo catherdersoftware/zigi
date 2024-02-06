@@ -43,6 +43,9 @@
   |    Public License along with this program.  If not, see    |
   |    <https://www.gnu.org/licenses/>.                        |
   * ---------------------------------------------------------- */
+
+zigizlus:
+
   if zluser == '>7CHARS' |,
    zos390rl >= '02.03.00' & zluser8 \= ' ' then
     user = zluser8
