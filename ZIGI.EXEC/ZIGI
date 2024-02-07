@@ -5121,17 +5121,9 @@ Do_Resetid:
     do forever
       'tbskip' rtll
       if rc > 3 then leave
-      if zluser == '>7CHARS' then
-        cmpruser = zluser8
-      else
-        cmpruser = zluser
-      if cmpruser = resetid then iterate
-      if zluser == '>7CHARS' then
-        setuser = zluser8
-      else
-        setuser = zluser
+      if zigizlus() = resetid then iterate
       zluser = resetid
-      'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(setuser)
+      'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(resetid)
       'tbput' rtll
     end
     "LMClose Dataid("zstats")"

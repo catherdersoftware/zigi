@@ -238,8 +238,8 @@ zigistat:
         if sysrecfm /= 'U'
         then mem.c = strip(member ,
           ZLCDATE  ZLMDATE  ZLVERS ZLMOD ZLMTIME ZLCNORC ,
-          ZLINORC ZLMNORC ZLUSER ,
-          zlcnorce zlinorce zlmnorce ZLUSER8)
+          ZLINORC ZLMNORC zigizlus() ,
+          zlcnorce zlinorce zlmnorce)
         else if strip(zlalias) = null then do
           mem.c = strip(member ,
             zlsize zlamod zlrmode zlattr zlalias zlssi)
@@ -320,14 +320,10 @@ zigistat:
         "LMOPEN DATAID("zstats") OPTION(INPUT)"
         do i = 1 to stats.0
           parse value stats.i with member ZLCDATE ZLMDATE ZLVERS ZLMOD ,
-            ZLMTIME ZLCNORC ZLINORC ZLMNORC ZLUSER ZLCNORCE ,
-            ZLINORCE ZLMNORCE ZLUSER8 .
+            ZLMTIME ZLCNORC ZLINORC ZLMNORC setuser ZLCNORCE ,
+            ZLINORCE ZLMNORCE .
           if statmems /= null then
           if wordpos(member,statmems) = 0 then iterate
-          if zluser == '>7CHARS' then
-            setuser = zluser8
-          else
-            setuser = zluser
           if zlcdate = null then ,
             'LMMSTATS DATAID('zstats') Member('member')',
             zigilmmu(sysvar(sysuid))
