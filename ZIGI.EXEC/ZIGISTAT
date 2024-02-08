@@ -495,6 +495,15 @@ Check_Stats_File:
   | Get the users current OMVS enviornment for use in the |
   | bpxwunix commands.                                    |
   * ----------------------------------------------------- */
+zigizlus:
+
+  if zluser == '>7CHARS' |,
+   zos390rl >= '02.03.00' & zluser8 \= ' ' then
+    user = zluser8
+  else
+    user = zluser
+  return user
+
 GETENV:
   cmd = 'pwd'
   omvsenv.1 = '_BPX_SHAREAS=MUST'

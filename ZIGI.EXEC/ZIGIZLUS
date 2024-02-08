@@ -1,6 +1,15 @@
 /* rexx */
 
   /* --------------------  rexx procedure  -------------------- *
+  | NOTE: This routine does not work as an external procedure  |
+  |       as the ZLUSER/ZLUSER8 variables are local to the     |
+  |       script. This code must be copied as is into the      |
+  |       routines where it is needed. See markers on what to  |
+  |       copy.                                                |
+  |                                                            |
+  |       If you modify this, you must update all places where |
+  |       it is used.                                          |
+  |                                                            |
   | Name:      zigizlus                                        |
   |                                                            |
   | Function:  Return either ZLUSER8 or ZLUSER based on        |
@@ -44,6 +53,7 @@
   |    <https://www.gnu.org/licenses/>.                        |
   * ---------------------------------------------------------- */
 
+/* START WITH THE LINE BELOW */
 zigizlus:
 
   if zluser == '>7CHARS' |,
@@ -53,3 +63,4 @@ zigizlus:
     user = zluser
   return user
 
+/* END WITH THE LINE ABOVE */

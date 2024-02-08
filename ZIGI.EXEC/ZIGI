@@ -10110,6 +10110,15 @@ Check_ignore:
   end
   return 0
 
+zigizlus:
+
+  if zluser == '>7CHARS' |,
+   zos390rl >= '02.03.00' & zluser8 \= ' ' then
+    user = zluser8
+  else
+    user = zluser
+  return user
+
 Update_stats:
   parse arg us_stats us_dsn
   if pos('(',us_dsn) > 0 then do
