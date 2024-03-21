@@ -574,9 +574,10 @@ do_cmsg:
   cmsgd.0 = i
   file = 'cmsg'random(999)
   fdd  = file
-  if sysvar('syspref') = null
-  then filem = sysvar('sysuid')'.'file
-  else filem = file
+  if sysvar('syspref') = null then
+    filem = sysvar('sysuid')'.'file
+  else
+    filem = file
   file = localrep'/'file
   file = "'"file"'"
   address tso
@@ -1623,9 +1624,10 @@ zigistat:
     zlcnorce zlinorce zlmnorce ,
     zlsize zlamod zlrmode zlattr zlalias zlssi
   mem.0  = 0
-  if defruid = null
-  then newuid = sysvar('sysuid')
-  else newuid = defruid
+  if defruid = null then
+    newuid = sysvar('sysuid')
+  else
+    newuid = defruid
 
   zs1 = 'Collecting statistics for:'
   zs2 = dsn
@@ -2139,9 +2141,10 @@ Get_LoadLib:
   drop mem.
   oc = 0
 
-  if sysvar('syspref') /= ''
-  then syspds = sysvar("syspref")".z"date("J")
-  else syspds = sysvar("sysuid")".z"date("J")
+  if sysvar('syspref') /= '' then
+    syspds = sysvar("syspref")".z"date("J")
+  else
+    syspds = sysvar("sysuid")".z"date("J")
 
   call outtrap 'x.'
   'free f(sysin sysprint syslib)'
