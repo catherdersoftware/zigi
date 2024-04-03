@@ -231,7 +231,7 @@ zigistat:
               'LMMSTATS DATAID('status') Member('member')' zigilmmu(newuid)
               "LMMFind DATAID("status") Member("member") STATS(YES)"
             end
-        say 'ZLVERS='zlvers 'ZLMOD='zlmod
+        /* say 'ZLVERS='zlvers 'ZLMOD='zlmod */
         /* ------------------------------ *
         * Add each member info to a stem *
         * ------------------------------ */
@@ -241,7 +241,7 @@ zigistat:
           ZLCDATE  ZLMDATE  ZLVERS ZLMOD ZLMTIME ZLCNORC ,
           ZLINORC ZLMNORC zigizlus() ,
           zlcnorce zlinorce zlmnorce)
-          say "mem."c "=" mem.c
+          /* say "mem."c "=" mem.c */
         end
         else if strip(zlalias) = null then do
           mem.c = strip(member ,
