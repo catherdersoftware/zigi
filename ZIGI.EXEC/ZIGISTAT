@@ -231,7 +231,7 @@ zigistat:
               'LMMSTATS DATAID('status') Member('member')' zigilmmu(newuid)
               "LMMFind DATAID("status") Member("member") STATS(YES)"
             end
-        /* say 'ZLVERS='zlvers 'ZLMOD='zlmod */
+        say 'ZLVERS='zlvers 'ZLMOD='zlmod
         /* ------------------------------ *
         * Add each member info to a stem *
         * ------------------------------ */
