@@ -38,8 +38,13 @@
   |                                                            |
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
+  | Modifiers: Lionel B. Dyck                                  |
+  |            M. Ray Mullins                                  |
+  |                                                            |
   | History:  (most recent on top)                             |
   |            01/31/24 MRM - Support 8-byte userids           |
+  |                         - Clean up formatting to play      |
+  |                           nicer with ISPF syntax hilite    |
   |            06/15/23 LBD - Add env ICONV_EBCDIC_ZOS_UNIX=1  |
   |            10/16/22 LBD - Delete amdlist sysprint tmp dsn  |
   |            07/19/22 LBD - Fix chtag mixed error            |
@@ -119,9 +124,10 @@ zigistat:
   /* ---------------------------------- *
    | Check for Background of Foreground |
    * ---------------------------------- */
-   if sysvar('sysenv') = 'FORE'
-      then background = 0
-      else background = 1
+   if sysvar('sysenv') = 'FORE' then
+        background = 0
+      else
+        background = 1
 
   /* --------------------------------- *
   | Check for parms and return if not |
@@ -136,9 +142,11 @@ zigistat:
   | Check for ZIGIDEBG DD for debug purposes |
   * ---------------------------------------- */
   x = listdsi('ZIGIDEBG' 'FILE')
-  if x > 0 then if sysreason = 3
-  then zigidebg = 1
-  else zigidebg = 0
+  if x > 0 then
+  if sysreason = 3 then
+      zigidebg = 1
+    else
+      zigidebg = 0
 
   Address ISPExec
   'vget (debugfil defruid readonly dovedir encoding)'
@@ -231,12 +239,12 @@ zigistat:
               'LMMSTATS DATAID('status') Member('member')' zigilmmu(newuid)
               "LMMFind DATAID("status") Member("member") STATS(YES)"
             end
-        say 'ZLVERS='zlvers 'ZLMOD='zlmod
         /* ------------------------------ *
         * Add each member info to a stem *
         * ------------------------------ */
         c = mem.0 + 1
         if sysrecfm /= 'U' then do
+          say 'ZLVERS='zlvers 'ZLMOD='zlmod
           mem.c = strip(member ,
           ZLCDATE  ZLMDATE  ZLVERS ZLMOD ZLMTIME ZLCNORC ,
           ZLINORC ZLMNORC zigizlus() ,
@@ -270,6 +278,13 @@ zigistat:
       x = debug('Get ISPF Stats using getpds:' cmd)
       x = bpxwunix(cmd,,mem.,se.,env.)
       do mi = 1 to mem.0
+
+        /* --------------------------------------------------------- *
+        |  This is temporary code to handle older versions of getpds |
+        * ---------------------------------------------------------- */
+        mem.mi = subword(mem.mi, 1, 3) right(mem.mi, 2, '0'),
+          right(mem.mi, 2, '0') subword(mem.mi, 6)
+
         allmems = allmems word(mem.mi,1)
       end
     end
@@ -371,9 +386,10 @@ zigistat:
         end
         parse value mem.i with actmem cd md . . mt . . . uid .
         data = strip(cd md left(mt,5) uid)
-        if m.actmem = null
-        then string = string actmem
-        else if data /= m.actmem then string = string actmem
+        if m.actmem = null then
+          string = string actmem
+        else if data /= m.actmem then
+          string = string actmem
         if datatype(uid) /= 'CHAR' then data = null
         if strip(data) = null then call update_member_ispf_stats
       end
@@ -438,19 +454,18 @@ zigistat:
 
       'VPUT (REPO@NFC)'
 
-      if length(allmems) < 32000
-      then do
+      if length(allmems) < 32000 then do
         allmemsc = allmemsc + 1
         interpret 'allmems'allmemsc '= allmems'
         'vput (allmems'allmemsc')'
       end
       else do forever
         allmemsc = allmemsc + 1
-        if length(allmems) > 32000
-        then lp = lastpos(' ',allmems,length(allmems)-32000)
-        else lp = 0
-        if lp > 0
-        then do
+        if length(allmems) > 32000 then
+          lp = lastpos(' ',allmems,length(allmems)-32000)
+        else
+          lp = 0
+        if lp > 0 then do
           interpret 'allmems'allmemsc '=' substr(allmems,lp)
           allmems = left(allmems,lp-1)
         end
@@ -532,9 +547,10 @@ docmdx:
   not running a login shell via bpxwunix */
   parse arg cmd
   drop o. se.
-  if gitenv /= null
-  then envfile = '.' gitenv ' >/dev/null 2>&1 &&'
-  else envfile = null
+  if gitenv /= null then
+    envfile = '.' gitenv ' >/dev/null 2>&1 &&'
+  else
+    envfile = null
 
   /* check for users .profile */
   address syscall 'lstat' "'"home"/.profile'" 'x.'
@@ -619,7 +635,8 @@ Do_Popup4:
      poptso = 1
      Address ISPExec
      end
-  else poptso = 0
+  else
+    poptso = 0
   call pfshow 'off'           /* make sure pfshow is off */
   'Control Display Lock'
   'Addpop row(4) column(6)'
