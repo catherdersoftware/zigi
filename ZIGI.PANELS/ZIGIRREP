@@ -22,6 +22,7 @@
 +]Select+ (S)+ Edit the dataset/file
 +]Undo+   (U)+ Undo an UnCommitted change
 +]View+   (V)+ View the dataset/file
++]ZDir+   (Z)+ View the corresponding USS directory
               +Or%F3+to cancel.
 )Init
  &zwinttl = 'ZIGI Current Repository Selections'
@@ -39,6 +40,7 @@
  &select  = 'Select'
  &undo    = 'Undo'
  &view    = 'View'
+ &zdir    = 'ZDir'
 )Proc
  if (&zsel = 'E')
      &zsel = 'S'
@@ -55,8 +57,12 @@
   Field(rename ) var(zsel) val('RN')
   Field(undo   ) var(zsel) val('U')
   Field(view   ) var(zsel) val('V')
+  Field(zdir   ) var(zsel) val('Z')
 )End
-/* -------------------------------------------------------- */
-/* ZIGI - the z/OS ISPF Git Interface                       */
-/* Copyright (C) 2020 GPL V3 - Henri Kuiper and Lionel Dyck */
-/* -------------------------------------------------------- */
+/* ------------------------------------------------------------- */
+/* ZIGI - the z/OS ISPF Git Interface                            */
+/* Copyright (C) 2020-2024 GPL V3 - Henri Kuiper, Lionel Dyck,   */
+/*   and Ray Mullins.                                            */
+/* Maintenance:                                                  */
+/* 20240501 MRM  Added ZDir command to panel (already supported) */
+/* ------------------------------------------------------------- */

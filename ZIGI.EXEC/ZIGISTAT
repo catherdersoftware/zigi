@@ -42,6 +42,9 @@
   |            M. Ray Mullins                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            05/01/24 MRM - Fix getpds ver/mod values        |
+  |                           (temporary until getpds update   |
+  |                           has significant use)             |
   |            01/31/24 MRM - Support 8-byte userids           |
   |                         - Clean up formatting to play      |
   |                           nicer with ISPF syntax hilite    |
@@ -282,8 +285,8 @@ zigistat:
         /* --------------------------------------------------------- *
         |  This is temporary code to handle older versions of getpds |
         * ---------------------------------------------------------- */
-        mem.mi = subword(mem.mi, 1, 3) right(mem.mi, 2, '0'),
-          right(mem.mi, 2, '0') subword(mem.mi, 6)
+        mem.mi = subword(mem.mi, 1, 3) right(word(mem.mi, 4), 2, '0'),
+          right(word(mem.mi, 5), 2, '0') subword(mem.mi, 6)
 
         allmems = allmems word(mem.mi,1)
       end
