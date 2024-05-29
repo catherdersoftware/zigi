@@ -1,4 +1,4 @@
-  /*%NOCOMMENT ----------- REXX -------------------------------- *
+  /* --------------------- REXX -------------------------------- *
   | This is a REXX exec that may be copied into a system level, |
   | group level, or personal SYSEXEC or SYSPROC library for the |
   | purpose of making it easy to invoke zigi.                   |
