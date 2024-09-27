@@ -1,5 +1,5 @@
   /* --------------------  rexx procedure  ------------------- */
-  ver = 'v3r22'
+  ver = 'v3r24'
   /*Name:      ZIGI  (z ISPF Git Interface)                    |
   |                                                            |
   | Function:  ISPF Interface to Git for source code           |
@@ -29,6 +29,9 @@
   |                                                            |
   | History:  (most recent on top, see git log for full info)  |
   |                                                            |
+  |            05/01/24 - Version 3.24                         |
+  |                     - Prevent working with the active EXEC |
+  |                       data set when it is in a repository. |
   |            08/12/24 - Version 3.22                         |
   |                     - Ignore binary merge conflicts        |
   |            05/17/24 - Version 3.21                         |
@@ -738,19 +741,20 @@
       call pfshow 'reset'         /* restore pfshow setting */
     end
 
-    if zsel /= null then
-    Select
-      When zsel = 'I' then call handle_zigiprim_lcmd_i
-      When zsel = 'S' then call select_repo
-      When zsel = 'V' then
-      'SELECT PGM(ISRDSLST) PARM(UDL' localrep'/'zigirep') SUSPEND'
-      When zsel = 'D' then call handle_zigiprim_lcmd_d
-      Otherwise do
-        zerrsm = 'Unknown'
-        zerrlm = zsel 'is not a recognized command.'
-        'setmsg msg(isrz003)'
-      end
-    End
+    if zsel /= null then do
+        Select
+          When zsel = 'I' then call handle_zigiprim_lcmd_i
+          When zsel = 'S' then call select_repo
+          When zsel = 'V' then
+          'SELECT PGM(ISRDSLST) PARM(UDL' localrep'/'zigirep') SUSPEND'
+          When zsel = 'D' then call handle_zigiprim_lcmd_d
+          Otherwise do
+            zerrsm = 'Unknown'
+            zerrlm = zsel 'is not a recognized command.'
+            'setmsg msg(isrz003)'
+          end
+        End
+    end
   end
 
 Done:
@@ -1693,30 +1697,30 @@ Work_With_Repo:
     * -------------------------------- */
     if zsel = 'E' then zsel = 'S'
     if zsel /= null then
-    Select
-      when zsel = 'D'  then call WWR_handle_lcmd_d
-      When zsel = 'H'  then call WWR_handle_lcmd_h
-      When zsel = 'B'  then call WWR_handle_lcmd_b
-      When zsel = 'BL' then call WWR_handle_lcmd_bl
-      When zsel = 'V'  then call WWR_handle_lcmd_v
-      When zsel = 'RN' then call WWR_handle_lcmd_rn
-      When zsel = 'RM' then call WWR_handle_lcmd_rm
-      When zsel = 'S' & left(fulldsn,1) /= "'" then
-      call WWR_handle_lcmd_s_omvs
-      When zsel = 'S' & zosflg = 1 then
-      call WWR_handle_lcmd_s_mvs
-      When zsel = 'A' then
-      call WWR_handle_lcmd_a
-      When zsel = 'U' then call WWR_handle_lcmd_u
-      When zsel = 'Z' then call WWR_handle_lcmd_z
-      Otherwise do
-        zerrsm = 'Invalid.'
-        zerrlm = zsel 'is not a valid selection value. Review the' ,
-          'ISPF Tutorial using F1 for available line selection' ,
-          'options.'
-        'setmsg msg(isrz003)'
+      Select
+        when zsel = 'D'  then call WWR_handle_lcmd_d
+        When zsel = 'H'  then call WWR_handle_lcmd_h
+        When zsel = 'B'  then call WWR_handle_lcmd_b
+        When zsel = 'BL' then call WWR_handle_lcmd_bl
+        When zsel = 'V'  then call WWR_handle_lcmd_v
+        When zsel = 'RN' then call WWR_handle_lcmd_rn
+        When zsel = 'RM' then call WWR_handle_lcmd_rm
+        When zsel = 'S' & left(fulldsn,1) /= "'" then
+          call WWR_handle_lcmd_s_omvs
+        When zsel = 'S' & zosflg = 1 then
+          call WWR_handle_lcmd_s_mvs
+        When zsel = 'A' then
+          call WWR_handle_lcmd_a
+        When zsel = 'U' then call WWR_handle_lcmd_u
+        When zsel = 'Z' then call WWR_handle_lcmd_z
+        Otherwise do
+          zerrsm = 'Invalid.'
+          zerrlm = zsel 'is not a valid selection value. Review the' ,
+            'ISPF Tutorial using F1 for available line selection' ,
+            'options.'
+          'setmsg msg(isrz003)'
+        end
       end
-    end
     if zigi_changed = 1 then
     if ztdsels = 1 then do
       'tbend' rtbl
@@ -1742,7 +1746,20 @@ WWR_init:
   x = debug('Working with Repo:' zigirep)
   readonly = check_read_only()
   'vput (readonly) shared'
+  x = 0 /* x is 1 coming out of check_read_only,
+           causes get_dsn_info to return early   */
   call get_dsn_info
+  stemsuf = 'ZIGI.EXEC'
+  if "'"pdshlq"."dsninfo.stemsuf"'" == exec then do
+    zerrsm = 'Bad idea.'
+    zerrlm = 'You are attempting to work with the current EXEC data set.',
+     'This is a Very Bad Idea (tm). If you need to work with this data',
+     'set, check out to a different HLQ or execute ZIGI from a different',
+     'data set.'
+    'setmsg msg(isrz003)'
+    wwr_opt = 'Bad idea.'
+    return
+  end /* if fulldsn */
   call update_repo_metadata
   if cltime /= null then do
     zerrsm  = 'Clone:' cltime
@@ -3177,7 +3194,7 @@ WWRF_build_member_table:
   /* Do this if it's a PDS */
   localdir = localrep'/'zigirep
   'TBCreate' rtll 'Keys(mem) Names(memstat zlcnorc' ,
-    'zlmdate zlmtime zluser mtype zlm4date)',
+    'zlmdate zlmtime zluser mtype zlm4date zluser8)',
     'replace NoWrite'
   rtll_open = 1
   /* --------------------- *
@@ -5133,9 +5150,9 @@ Do_Resetid:
     do forever
       'tbskip' rtll
       if rc > 3 then leave
-      if zluser = resetid then iterate
+      if zigizlus() = resetid then iterate
       zluser = resetid
-      'LMMSTATS DATAID('zstats') Member('mem') user('zluser')'
+      'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(resetid)
       'tbput' rtll
     end
     "LMClose Dataid("zstats")"
@@ -5470,8 +5487,12 @@ fixup_userids:
       parse value member with member'.' .
       "LMMFind DATAID("reset") Member("member") STATS(YES)"
       if rc > 7 then iterate
-      if zluser /= defruid then do
-        'LMMSTATS DATAID('reset') Member('member') user('defruid')'
+      if zluser == '>7CHARS' then
+        cmpruser = zluser8
+      else
+        cmpruser = zluser
+      if cmpruser /= defruid then do
+        'LMMSTATS DATAID('reset') Member('member')' zigilmmu(defruid)
       end
     end
     "LMClose Dataid("reset")"
@@ -5768,7 +5789,8 @@ Do_LSort:
     return
   end
   sw = wordpos(sort_field,'MEMBER STATUS SIZE DATE TIME USERID')
-  sort_field = subword('mem memstat zlcnorc zlm4date zlmtime zluser',sw,1)
+  sort_field = subword('mem memstat zlcnorc zlm4date zlmtime zluser zluser8',,
+    sw,1)
   if sw = 3 then sort_type = 'N'
   else sort_type = 'C'
   if sort_field /= zlm4date
@@ -9618,7 +9640,7 @@ DoHist_Recover:
     if left(rdsn,1) = "'" then rdsn = rdsn"'"
     "LMINIT DATAID(zstats) DATASET("rdsn")"
     "LMOPEN DATAID("zstats") OPTION(INPUT)"
-    'LMMSTATS DATAID('zstats') Member('mem') user('zluser')'
+    'LMMSTATS DATAID('zstats') Member('mem')' zigilmmu(zluser)
     "LMClose Dataid("zstats")"
     "LMFree  Dataid("zstats")"
   end
@@ -9830,14 +9852,18 @@ Add_Stats:
   "LMOPEN DATAID("zstats") OPTION(INPUT)"
   parse value mstats with upmbr ZLCDATE ZLMDATE ZLVERS ZLMOD ,
     ZLMTIME ZLCNORC ZLINORC ZLMNORC ZLUSER ZLCNORCE ,
-    ZLINORCE ZLMNORCE .
+    ZLINORCE ZLMNORCE ZLUSER8 .
+  if zluser == '>7CHARS' then
+    setuser = zluser8
+  else
+    setuser = zluser
   if zlcdate = null then ,
-    'LMMSTATS DATAID('zstats') Member('upmbr') user('sysvar(sysuid)')'
+    'LMMSTATS DATAID('zstats') Member('upmbr')' zigilmmu(sysvar(sysuid))
   else ,
     'LMMSTATS DATAID('zstats') MEMBER('upmbr') VERSION('zlvers')' ,
     'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
     'MODTIME('zlmtime') INITSIZE('zlinorc')' ,
-    'MODRECS('zlmnorc') USER('zluser')'
+    'MODRECS('zlmnorc')' zigilmmu(setuser)
   "LMClose Dataid("zstats")"
   "LMFree  Dataid("zstats")"
   return
@@ -10192,6 +10218,15 @@ Check_ignore:
     if check_git_ignore = strip(sso.gic) then return 'GI'
   end
   return 0
+
+zigizlus:
+
+  if zluser == '>7CHARS' |,
+   zos390rl >= '02.03.00' & zluser8 \= ' ' then
+    user = zluser8
+  else
+    user = zluser
+  return user
 
 Update_stats:
   parse arg us_stats us_dsn

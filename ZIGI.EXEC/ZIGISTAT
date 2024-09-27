@@ -38,10 +38,19 @@
   |                                                            |
   | Author:    Lionel B. Dyck                                  |
   |                                                            |
+  | Modifiers: Lionel B. Dyck                                  |
+  |            M. Ray Mullins                                  |
+  |                                                            |
   | History:  (most recent on top)                             |
   |            06/28/24 LBD - Update LMMSTATs to match Co:Z    |
   |                           stat format                      |
+  |            05/01/24 MRM - Fix getpds ver/mod values        |
+  |                           (temporary until getpds update   |
+  |                           has significant use)             |
   |            03/28/24 LBD - Update zlmtime with zlmsec       |
+  |            01/31/24 MRM - Support 8-byte userids           |
+  |                         - Clean up formatting to play      |
+  |                           nicer with ISPF syntax hilite    |
   |            06/15/23 LBD - Add env ICONV_EBCDIC_ZOS_UNIX=1  |
   |            10/16/22 LBD - Delete amdlist sysprint tmp dsn  |
   |            07/19/22 LBD - Fix chtag mixed error            |
@@ -91,7 +100,8 @@
   |                                                            |
   | ---------------------------------------------------------- |
   |    ZIGI - the z/OS ISPF Git Interface                      |
-  |    Copyright (C) 2020-2024 - Henri Kuiper and Lionel Dyck  |
+  |    Copyright (C) 2020-2024 - Henri Kuiper, Lionel Dyck, &  |
+  |                              Ray Mullins                   |
   |                                                            |
   |    This program is free software: you can redistribute it  |
   |    and/or modify it under the terms of the GNU General     |
@@ -120,9 +130,10 @@ zigistat:
   /* ---------------------------------- *
    | Check for Background of Foreground |
    * ---------------------------------- */
-   if sysvar('sysenv') = 'FORE'
-      then background = 0
-      else background = 1
+   if sysvar('sysenv') = 'FORE' then
+        background = 0
+      else
+        background = 1
 
   /* --------------------------------- *
   | Check for parms and return if not |
@@ -137,9 +148,11 @@ zigistat:
   | Check for ZIGIDEBG DD for debug purposes |
   * ---------------------------------------- */
   x = listdsi('ZIGIDEBG' 'FILE')
-  if x > 0 then if sysreason = 3
-  then zigidebg = 1
-  else zigidebg = 0
+  if x > 0 then
+  if sysreason = 3 then
+      zigidebg = 1
+    else
+      zigidebg = 0
 
   Address ISPExec
   'vget (debugfil defruid readonly dovedir encoding)'
@@ -186,14 +199,15 @@ zigistat:
   * ------------ */
   x = debug('Collecting stats for all members for:' dsn)
   parse value null with member mem. ,
-    ZLCDATE ZLMDATE ZLVERS ZLMOD ZLMTIME ZLMSEC ZLCNORC,
-    ZLINORC ZLMNORC ZLUSER ,
+    ZLCDATE ZLMDATE ZLVERS ZLMOD ZLMTIME ZLCNORC,
+    ZLINORC ZLMNORC ZLUSER ZLUSER8 ,
     zlcnorce zlinorce zlmnorce ,
     zlsize zlamod zlrmode zlattr zlalias zlssi
   mem.0  = 0
-  if defruid = null
-  then newuid = sysvar('sysuid')
-  else newuid = defruid
+  if defruid = null then
+    newuid = sysvar('sysuid')
+  else
+    newuid = defruid
 
   zs1 = 'Collecting statistics for:'
   zs2 = dsn
@@ -204,14 +218,13 @@ zigistat:
   /* ----------------------- *
   * Now process all members *
   * ----------------------- */
-  if sysdsorg = 'PO' & sysrecfm = 'U'
-  then do
+  if sysdsorg = 'PO' & sysrecfm = 'U' then do
        zs3 = 'Collecting Load Module Information'
        call do_popup4
        Address TSO
        x = get_loadlib(dsn)
        Address ISPExec
-       end
+  end
   else if sysdsorg = 'PO' then do
     if dovedir = 0 then do
       "LMINIT DATAID(STATUS) DATASET("dsn")"
@@ -227,21 +240,23 @@ zigistat:
         | Check if no stats then add them. |
         * -------------------------------- */
         if sysrecfm /= 'U' then
-        if zlcdate = null then
-        if readonly = 0 then do
-          'LMMSTATS DATAID('status') Member('member') user('newuid')'
-          "LMMFind DATAID("status") Member("member") STATS(YES)"
-        end
+          if zlcdate = null then
+            if readonly = 0 then do
+              'LMMSTATS DATAID('status') Member('member')' zigilmmu(newuid)
+              "LMMFind DATAID("status") Member("member") STATS(YES)"
+            end
         /* ------------------------------ *
         * Add each member info to a stem *
         * ------------------------------ */
         c = mem.0 + 1
-        if sysrecfm /= 'U'
-        then mem.c = strip(member ,
-          ZLCDATE  ZLMDATE  right(ZLVERS+0,2) right(ZLMOD+0,2) ,
-          ZLMTIME":"zlmsec ZLCNORC ,
-          ZLINORC ZLMNORC ZLUSER ,
-          zlcnorce zlinorce zlmnorce)
+        if sysrecfm /= 'U' then do
+          mem.c = strip(member ,
+            ZLCDATE  ZLMDATE  right(ZLVERS+0,2) right(ZLMOD+0,2) ,
+            ZLMTIME":"zlmsec ZLCNORC ,
+            ZLINORC ZLMNORC zigizlus() ,
+            zlcnorce zlinorce zlmnorce)
+          /* say "mem."c "=" mem.c */
+        end
         else if strip(zlalias) = null then do
           mem.c = strip(member ,
             zlsize zlamod zlrmode zlattr zlalias zlssi)
@@ -269,6 +284,13 @@ zigistat:
       x = debug('Get ISPF Stats using getpds:' cmd)
       x = bpxwunix(cmd,,mem.,se.,env.)
       do mi = 1 to mem.0
+
+        /* --------------------------------------------------------- *
+        |  This is temporary code to handle older versions of getpds |
+        * ---------------------------------------------------------- */
+        mem.mi = subword(mem.mi, 1, 3) right(word(mem.mi, 4), 2, '0'),
+          right(word(mem.mi, 5), 2, '0') subword(mem.mi, 6)
+
         allmems = allmems word(mem.mi,1)
       end
     end
@@ -322,17 +344,18 @@ zigistat:
         "LMOPEN DATAID("zstats") OPTION(INPUT)"
         do i = 1 to stats.0
           parse value stats.i with member ZLCDATE ZLMDATE ZLVERS ZLMOD ,
-            ZLMTIME ZLCNORC ZLINORC ZLMNORC ZLUSER ZLCNORCE ,
+            ZLMTIME ZLCNORC ZLINORC ZLMNORC setuser ZLCNORCE ,
             ZLINORCE ZLMNORCE .
           if statmems /= null then
-          if wordpos(member,statmems) = 0 then iterate
+            if wordpos(member,statmems) = 0 then iterate
           if zlcdate = null then ,
-            'LMMSTATS DATAID('zstats') Member('member') user('sysvar(sysuid)')'
+            'LMMSTATS DATAID('zstats') Member('member')',
+            zigilmmu(sysvar(sysuid))
           else ,
             'LMMSTATS DATAID('zstats') MEMBER('member') VERSION('zlvers')' ,
             'MODLEVEL('zlmod') CREATED('zlcdate') MODDATE('zlmdate')' ,
             'MODTIME('zlmtime') INITSIZE('zlinorc')' ,
-            'MODRECS('zlmnorc') USER('zluser')'
+            'MODRECS('zlmnorc')' zigilmmu(setuser)
         end
         "LMClose Dataid("zstats")"
         "LMFree  Dataid("zstats")"
@@ -369,9 +392,10 @@ zigistat:
         end
         parse value mem.i with actmem cd md . . mt . . . uid .
         data = strip(cd md left(mt,5) uid)
-        if m.actmem = null
-        then string = string actmem
-        else if data /= m.actmem then string = string actmem
+        if m.actmem = null then
+          string = string actmem
+        else if data /= m.actmem then
+          string = string actmem
         if datatype(uid) /= 'CHAR' then data = null
         if strip(data) = null then call update_member_ispf_stats
       end
@@ -436,19 +460,18 @@ zigistat:
 
       'VPUT (REPO@NFC)'
 
-      if length(allmems) < 32000
-      then do
+      if length(allmems) < 32000 then do
         allmemsc = allmemsc + 1
         interpret 'allmems'allmemsc '= allmems'
         'vput (allmems'allmemsc')'
       end
       else do forever
         allmemsc = allmemsc + 1
-        if length(allmems) > 32000
-        then lp = lastpos(' ',allmems,length(allmems)-32000)
-        else lp = 0
-        if lp > 0
-        then do
+        if length(allmems) > 32000 then
+          lp = lastpos(' ',allmems,length(allmems)-32000)
+        else
+          lp = 0
+        if lp > 0 then do
           interpret 'allmems'allmemsc '=' substr(allmems,lp)
           allmems = left(allmems,lp-1)
         end
@@ -472,9 +495,9 @@ Update_Member_ISPF_Stats:
     parse value mem.actmem with cdt mdt mtm uid
     if uid /= null then
     'LMMSTATS DATAID('zstats') Member('actmem') Created('cdt')',
-           'Moddate('mdt') Modtime('mtm') User('uid')'
+           'Moddate('mdt') Modtime('mtm')' zigilmmu(uid)
     else
-    'LMMSTATS DATAID('zstats') Member('actmem') User('userid()')'
+    'LMMSTATS DATAID('zstats') Member('actmem')' zigilmmu(userid())
     "LMClose Dataid("zstats")"
     "LMFree  Dataid("zstats")"
    return
@@ -496,6 +519,15 @@ Check_Stats_File:
   | Get the users current OMVS enviornment for use in the |
   | bpxwunix commands.                                    |
   * ----------------------------------------------------- */
+zigizlus:
+
+  if zluser == '>7CHARS' |,
+   zos390rl >= '02.03.00' & zluser8 \= ' ' then
+    user = zluser8
+  else
+    user = zluser
+  return user
+
 GETENV:
   cmd = 'pwd'
   omvsenv.1 = '_BPX_SHAREAS=MUST'
@@ -511,7 +543,7 @@ GETENV:
   envc = env.0
   call add_env '_BPX_SHAREAS=MUST'
   call add_env '_BPX_SPAWN_SCRIPT=YES'
-  call add_env 'EXPORT _EDC_ADD_ERRNO2=1'
+  call add_env '_EDC_ADD_ERRNO2=1'
   call add_env '_EDC_ZERO_RECLEN=Y'
   call add_env 'ICONV_EBCDIC_ZOS_UNIX=1'
   env.0 = envc
@@ -521,9 +553,10 @@ docmdx:
   not running a login shell via bpxwunix */
   parse arg cmd
   drop o. se.
-  if gitenv /= null
-  then envfile = '.' gitenv ' >/dev/null 2>&1 &&'
-  else envfile = null
+  if gitenv /= null then
+    envfile = '.' gitenv ' >/dev/null 2>&1 &&'
+  else
+    envfile = null
 
   /* check for users .profile */
   address syscall 'lstat' "'"home"/.profile'" 'x.'
@@ -608,7 +641,8 @@ Do_Popup4:
      poptso = 1
      Address ISPExec
      end
-  else poptso = 0
+  else
+    poptso = 0
   call pfshow 'off'           /* make sure pfshow is off */
   'Control Display Lock'
   'Addpop row(4) column(6)'
@@ -698,9 +732,10 @@ Get_LoadLib:
   drop mem.
   oc = 0
 
-  if sysvar('syspref') /= ''
-  then syspds = sysvar("syspref")".z"date("J")
-  else syspds = sysvar("sysuid")".z"date("J")
+  if sysvar('syspref') /= '' then
+    syspds = sysvar("syspref")".z"date("J")
+  else
+    syspds = sysvar("sysuid")".z"date("J")
 
   call outtrap 'x.'
   'free f(sysin sysprint syslib)'

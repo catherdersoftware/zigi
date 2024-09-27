@@ -13,7 +13,7 @@ Currently there are two ported versions of `git`. One from Rocket Software and t
 Point your browser to https://www.rocketsoftware.com/ and create an account. Then install the Rocket installer `miniconda` and follow their instructions.
 Then download git, bash, gzip and perl and bring all those files to one directory in USS.
 
-Then head on over to https://gist.github.com/wizardofzos/897b243d4cbe9fbc471ec1396fbbe174 and stick that installer in the
+Then head on over to https://gist.github.com/zigi/897b243d4cbe9fbc471ec1396fbbe174 and stick that installer in the
 same directory as the things you downloaded from rocket.
 
 Run that script.
