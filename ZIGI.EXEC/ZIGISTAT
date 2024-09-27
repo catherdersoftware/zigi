@@ -42,6 +42,8 @@
   |            M. Ray Mullins                                  |
   |                                                            |
   | History:  (most recent on top)                             |
+  |            06/28/24 LBD - Update LMMSTATs to match Co:Z    |
+  |                           stat format                      |
   |            05/01/24 MRM - Fix getpds ver/mod values        |
   |                           (temporary until getpds update   |
   |                           has significant use)             |
@@ -248,11 +250,11 @@ zigistat:
         * ------------------------------ */
         c = mem.0 + 1
         if sysrecfm /= 'U' then do
-          say 'ZLVERS='zlvers 'ZLMOD='zlmod
           mem.c = strip(member ,
-          ZLCDATE  ZLMDATE  ZLVERS ZLMOD ZLMTIME ZLCNORC ,
-          ZLINORC ZLMNORC zigizlus() ,
-          zlcnorce zlinorce zlmnorce)
+            ZLCDATE  ZLMDATE  right(ZLVERS+0,2) right(ZLMOD+0,2) ,
+            ZLMTIME":"zlmsec ZLCNORC ,
+            ZLINORC ZLMNORC zigizlus() ,
+            zlcnorce zlinorce zlmnorce)
           /* say "mem."c "=" mem.c */
         end
         else if strip(zlalias) = null then do
